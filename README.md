@@ -1,3 +1,3 @@
-# pick-formatter README
+# Pick Formatter
 
 Pick Basic formatting with opinions
