@@ -70,19 +70,39 @@ const escapeRegExp = (str) => {
 const margin = " ".repeat(5);
 const indent = " ".repeat(3);
 
+const removeQuotedStrings = (text) => {
+    const doubleRegex = /\\"|"(?:\\"|[^"])*"|(\+)/g;
+    const singleRegex = /\\'|'(?:\\'|[^'])*'|(\+)/g;
+
+    return text.replace(doubleRegex, '').replace(singleRegex, '');
+};
+
 const getTrailingComment = (text) => {
     const doubleRegex = /\\"|"(?:\\"|[^"])*"|(\+)/g;
     const singleRegex = /\\'|'(?:\\'|[^'])*'|(\+)/g;
 
     // remove quoted delimiters
-    text = text.replace(doubleRegex, '');
-    text = text.replace(singleRegex, '');
+    text = removeQuotedStrings(text);
 
     if (!text.includes('*')) {
         return null;
     }
 
     return /(\*.*)$/.exec(text)[1];
+};
+
+const removeTrailingComment = (text) => {
+    const comment = getTrailingComment(text);
+
+    if (comment) {
+        return text.replace(comment, '').trim();
+    }
+
+    return text;
+};
+
+const isLabel = (text) => {
+    return (!!text.match(/^(\w+:|\d+)/));
 }
 
 const isBlockStart = (text) => {
@@ -102,15 +122,12 @@ const isBlockStart = (text) => {
         if (re.exec(text)) {
 
             if (token.inline) {
-                const comment = getTrailingComment(text);
-
-                if (comment) {
-                    text = text.replace(comment, '').trim();
-                }
+                text = removeTrailingComment(text);
                 return /\s(THEN|ELSE|DO)$/.exec(text) ? token.text : false;
             }
 
             if (token.text === 'CASE') {
+                text = removeQuotedStrings(text);
                 return (!text.includes(';')) ? token.text : false;
             }
 
@@ -143,13 +160,13 @@ const isBlockEnd = (text) => {
 
 const formatLine = (text, nestLevel) => {
     text = text.trim();
-    // comment
+
+    // IFDEF stuff
     if (text[0] === '!') {
         return text;
     }
 
-    // label
-    if (text.match(/^\w+:(\n|$)/)) {
+    if (isLabel(text)) {
         return text;
     }
 
