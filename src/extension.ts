@@ -3,6 +3,14 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
+const DEBUG = false;
+
+const debug = (...args) => {
+    if (DEBUG) {
+        console.log(...args);
+    }
+};
+
 interface Token {
     text: string;
     start?: boolean;
@@ -15,10 +23,9 @@ const tokens: Token[] = [
     { text: 'CASE', start: true },
     { text: 'FOR', start: true },
     { text: 'LOOP', start: true },
-    { text: 'END ELSE', start: true },
+    { text: 'END ELSE', start: true, end: true },
     { text: 'ELSE', start: true },
     { text: 'THEN', start: true },
-    { text: 'UNTIL', start: true },
     { text: 'WHILE', start: true },
 
     // commands that may have ELSE or THEN statements (or blocks) following them
@@ -43,6 +50,7 @@ const tokens: Token[] = [
     { text: 'READVU', start: true, inline: true },
     { text: 'REWIND', start: true, inline: true },
     { text: 'SEEK', start: true, inline: true },
+    { text: 'UNTIL', start: true, end: true, inline: true },
     { text: 'WEOF', start: true, inline: true },
     { text: 'WRITESEQ', start: true, inline: true },
     { text: 'WRITET', start: true, inline: true },
@@ -62,17 +70,44 @@ const escapeRegExp = (str) => {
 const margin = " ".repeat(5);
 const indent = " ".repeat(3);
 
+const getTrailingComment = (text) => {
+    const doubleRegex = /\\"|"(?:\\"|[^"])*"|(\+)/g;
+    const singleRegex = /\\'|'(?:\\'|[^'])*'|(\+)/g;
+
+    // remove quoted delimiters
+    text = text.replace(doubleRegex, '');
+    text = text.replace(singleRegex, '');
+
+    if (!text.includes('*')) {
+        return null;
+    }
+
+    return /(\*.*)$/.exec(text)[1];
+}
+
 const isBlockStart = (text) => {
     text = text.trim();
+
+    if (text[0] === '!') {
+        // Ignore bang (ifdef) statements
+        return false;
+    }
+
     for (const token of tokens) {
         if (!token.start) {
             continue;
         }
-        const re = new RegExp(`^${escapeRegExp(token.text)}(\\s|$)`);
+        const re = new RegExp(`^${escapeRegExp(token.text)}(\\s|$|\\()`);
 
         if (re.exec(text)) {
+
             if (token.inline) {
-                return (text.endsWith('THEN') || text.endsWith('ELSE')) ? token.text : false;
+                const comment = getTrailingComment(text);
+
+                if (comment) {
+                    text = text.replace(comment, '').trim();
+                }
+                return /\s(THEN|ELSE|DO)$/.exec(text) ? token.text : false;
             }
 
             if (token.text === 'CASE') {
@@ -88,6 +123,12 @@ const isBlockStart = (text) => {
 
 const isBlockEnd = (text) => {
     text = text.trim();
+
+    if (text[0] === '!') {
+        // Ignore bang (ifdef) statements
+        return false;
+    }
+
     for (const token of tokens) {
         if (!token.end) {
             continue;
@@ -126,10 +167,21 @@ const formatFile = (document) => {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
+        if (!line.trim()) {
+            // line is blank
+            result.push('');
+            continue;
+        }
+
         const incLevel = (!!isBlockStart(line));
+
+        if (incLevel) {
+            debug('Start Block', line);
+        }
 
         const endBlock = isBlockEnd(line);
         if (endBlock) {
+            debug('End Block', line);
             nestLevel -= 1;
         }
 
