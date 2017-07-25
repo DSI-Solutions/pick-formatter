@@ -19,6 +19,7 @@ interface Token {
 }
 
 const tokens: Token[] = [
+    { text: 'BEGIN CASE', start: true },
     { text: 'BEGIN', start: true },
     { text: 'CASE', start: true },
     { text: 'FOR', start: true },
@@ -129,7 +130,7 @@ const isBlockStart = (text) => {
 
             if (token.text === 'CASE') {
                 text = removeTrailingComment(removeQuotedStrings(text));
-                return (!text.includes(';')) ? token : false;
+                return (!text.includes(';') || text.endsWith(';')) ? token : false;
             }
 
             return token;
@@ -198,10 +199,15 @@ const formatFile = (document) => {
     // indent nest level
     let nestLevel = 0;
 
-    let inCase = false;
+    const caseStack = [];
+
+    const inCase = () => {
+        return caseStack[caseStack.length - 1]
+    };
 
     // edits list to be returned
     const result = [];
+
 
     const lines = document.getText().trim().split('\n');
     for (let i = 0; i < lines.length; i++) {
@@ -220,22 +226,24 @@ const formatFile = (document) => {
         }
 
         // CASE is a special CASE
-        if (token.end || (token.text === 'CASE' && inCase)) {
+        if (token.end || (token.text === 'CASE' && inCase())) {
 
             // decrease nesting an additinal level on END CASE in CASE block
-            if (token.text === 'END CASE' && inCase) {
+            if (token.text === 'END CASE' && inCase()) {
                 nestLevel -= 1;
             }
 
             nestLevel -= 1;
-            debug(token.text, inCase);
             debug('E', i + 1, nestLevel, line);
+            debug(token.text, inCase(), caseStack);
         }
 
-        if (token.text === 'CASE') {
-            inCase = true;
+        if (token.text === 'BEGIN CASE') {
+            caseStack.push(false);
+        } else if (token.text === 'CASE') {
+            caseStack[caseStack.length - 1] = true;
         } else if (token.text === 'END CASE') {
-            inCase = false;
+            caseStack.pop();
         }
 
         // RETURN is ok if used on level 0
