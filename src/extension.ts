@@ -153,7 +153,9 @@ const isBlockEnd = (text) => {
             continue;
         }
 
-        if (text.startsWith(token.text)) {
+        const re = new RegExp(`^${escapeRegExp(token.text)}(\\s|$|\\()`);
+
+        if (re.exec(text)) {
             if (token.text === 'CASE') {
                 text = removeTrailingComment(removeQuotedStrings(text));
                 return (!text.includes(';')) ? token : false;
