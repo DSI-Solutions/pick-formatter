@@ -56,6 +56,7 @@ const tokens: Token[] = [
     { text: 'WRITET', start: true, inline: true },
 
     // ENDs
+    { text: 'END CASE', end: true },
     { text: 'END', end: true },
     { text: 'NEXT', end: true },
     { text: 'REPEAT', end: true },
@@ -123,15 +124,15 @@ const isBlockStart = (text) => {
 
             if (token.inline) {
                 text = removeTrailingComment(text);
-                return /\s(THEN|ELSE|DO)$/.exec(text) ? token.text : false;
+                return /\s(THEN|ELSE|DO)$/.exec(text) ? token : false;
             }
 
             if (token.text === 'CASE') {
-                text = removeQuotedStrings(text);
-                return (!text.includes(';')) ? token.text : false;
+                text = removeTrailingComment(removeQuotedStrings(text));
+                return (!text.includes(';')) ? token : false;
             }
 
-            return token.text;
+            return token;
         }
     }
 
@@ -150,12 +151,32 @@ const isBlockEnd = (text) => {
         if (!token.end) {
             continue;
         }
+
         if (text.startsWith(token.text)) {
-            return token.text;
+            if (token.text === 'CASE') {
+                text = removeTrailingComment(removeQuotedStrings(text));
+                return (!text.includes(';')) ? token : false;
+            }
+
+            return token;
         }
     }
 
     return false;
+};
+
+const getToken = (text) => {
+    const start = isBlockStart(text);
+    if (start) {
+        return start;
+    }
+
+    const end = isBlockEnd(text);
+    if (end) {
+        return end;
+    }
+
+    return { text: '', start: false, end: false };
 };
 
 const formatLine = (text, nestLevel) => {
@@ -177,6 +198,8 @@ const formatFile = (document) => {
     // indent nest level
     let nestLevel = 0;
 
+    let inCase = false;
+
     // edits list to be returned
     const result = [];
 
@@ -190,25 +213,38 @@ const formatFile = (document) => {
             continue;
         }
 
-        const incLevel = (!!isBlockStart(line));
+        const token = getToken(line);
 
-        if (incLevel) {
-            debug('Start Block', line);
+        if (token.start) {
+            debug('S', i + 1, nestLevel, line);
         }
 
-        const endBlock = isBlockEnd(line);
-        if (endBlock) {
-            debug('End Block', line);
+        // CASE is a special CASE
+        if (token.end || (token.text === 'CASE' && inCase)) {
+
+            // decrease nesting an additinal level on END CASE in CASE block
+            if (token.text === 'END CASE' && inCase) {
+                nestLevel -= 1;
+            }
+
             nestLevel -= 1;
+            debug(token.text, inCase);
+            debug('E', i + 1, nestLevel, line);
+        }
+
+        if (token.text === 'CASE') {
+            inCase = true;
+        } else if (token.text === 'END CASE') {
+            inCase = false;
         }
 
         // RETURN is ok if used on level 0
-        if (endBlock === 'RETURN' && nestLevel < 0) {
+        if (token.text === 'RETURN' && nestLevel < 0) {
             nestLevel = 0;
         }
 
         // END is required at the end of a file
-        if (i === lines.length - 1 && endBlock === 'END') {
+        if (i === lines.length - 1 && token.text === 'END') {
             nestLevel = 0;
         }
 
@@ -219,7 +255,7 @@ const formatFile = (document) => {
 
         result.push(formatLine(line, nestLevel));
 
-        if (incLevel) {
+        if (token.start) {
             nestLevel += 1;
         }
     }
