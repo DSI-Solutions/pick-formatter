@@ -49,6 +49,7 @@ const tokens: Token[] = [
     { text: 'READU', start: true, inline: true },
     { text: 'READV', start: true, inline: true },
     { text: 'READVU', start: true, inline: true },
+    { text: 'RELEASE', start: true, inline: true },
     { text: 'REWIND', start: true, inline: true },
     { text: 'SEEK', start: true, inline: true },
     { text: 'UNTIL', start: true, end: true, inline: true },
@@ -61,7 +62,7 @@ const tokens: Token[] = [
     { text: 'END', end: true },
     { text: 'NEXT', end: true },
     { text: 'REPEAT', end: true },
-    { text: 'RETURN', end: true },
+    // { text: 'RETURN', end: true },
 ];
 
 const escapeRegExp = (str) => {
@@ -103,8 +104,14 @@ const removeTrailingComment = (text) => {
     return text;
 };
 
-const isLabel = (text) => {
-    return (!!text.match(/^(\w+:|\d+)/));
+const getLabel = (text) => {
+    const matches = /^(\w+:|\d+)/.exec(text);
+
+    if (!matches) {
+        return null;
+    }
+
+    return matches[1];
 }
 
 const isBlockStart = (text) => {
@@ -113,6 +120,11 @@ const isBlockStart = (text) => {
     if (text[0] === '!') {
         // Ignore bang (ifdef) statements
         return false;
+    }
+
+    const label = getLabel(text);
+    if (label) {
+        text = text.substring(label.length).trim();
     }
 
     for (const token of tokens) {
@@ -124,8 +136,8 @@ const isBlockStart = (text) => {
         if (re.exec(text)) {
 
             if (token.inline) {
-                text = removeTrailingComment(text);
-                return /\s(THEN|ELSE|DO)$/.exec(text) ? token : false;
+                text = removeTrailingComment(removeQuotedStrings(text));
+                return /\s(THEN|ELSE|DO)\s*;?$/.exec(text) ? token : false;
             }
 
             if (token.text === 'CASE') {
@@ -190,11 +202,14 @@ const formatLine = (text, nestLevel) => {
         return text;
     }
 
-    if (isLabel(text)) {
-        return text;
+    const label = getLabel(text) || '';
+
+    if (label.length) {
+        // remove label, readd before margin below
+        text = text.substring(label.length).trim();
     }
 
-    return `${margin}${indent.repeat(nestLevel)}${text}`
+    return `${label}${margin.substring(label.length)}${indent.repeat(nestLevel)}${text}`
 };
 
 const formatFile = (document) => {
@@ -212,23 +227,31 @@ const formatFile = (document) => {
 
 
     const lines = document.getText().trim().split('\n');
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
 
-        if (!line.trim()) {
-            // line is blank
-            result.push('');
+    for (let i = 0; i < document.lineCount; i++) {
+
+        const line = document.lineAt(i);
+        let text = line.text.trim();
+
+        if (!text) {
+            if (text !== line.text) {
+                // line has some unneeded spaces
+                result.push(vscode.TextEdit.replace(line.range, text));
+            }
             continue;
         }
 
-        const token = getToken(line);
+        const token = getToken(text);
 
         if (token.start) {
-            debug('S', i + 1, nestLevel, line);
+            debug('S', i + 1, nestLevel, text);
         }
 
         // CASE is a special CASE
-        if (token.end || (token.text === 'CASE' && inCase())) {
+        if (
+            !(token.text === 'RETURN' && inCase()) &&
+            (token.end || (token.text === 'CASE' && inCase()))
+        ) {
 
             // decrease nesting an additinal level on END CASE in CASE block
             if (token.text === 'END CASE' && inCase()) {
@@ -236,7 +259,7 @@ const formatFile = (document) => {
             }
 
             nestLevel -= 1;
-            debug('E', i + 1, nestLevel, line);
+            debug('E', i + 1, nestLevel, text);
             debug(token.text, inCase(), caseStack);
         }
 
@@ -263,14 +286,18 @@ const formatFile = (document) => {
             return;
         }
 
-        result.push(formatLine(line, nestLevel));
+        text = formatLine(text, nestLevel);
+
+        if (text !== line.text) {
+            result.push(vscode.TextEdit.replace(line.range, text));
+        }
 
         if (token.start) {
             nestLevel += 1;
         }
     }
 
-    return result.join('\n') + '\n';
+    return result;
 };
 
 export function activate(context: vscode.ExtensionContext) {
@@ -280,13 +307,19 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
 
-            const newText = formatFile(document);
-
-            if (!newText) {
+            try {
+                const result = formatFile(document);
+                debug('Changes:', result.length);
+                if (!result || !result.length) {
+                    return;
+                }
+                return result;
+                // return [vscode.TextEdit.replace(document.validateRange(new vscode.Range(0, 0, Number.MAX_VALUE, Number.MAX_VALUE)), newText)]
+            } catch (e) {
+                vscode.window.showInformationMessage(`Formatter Error: ${e.message}`);
+                console.log(e);
                 return;
             }
-
-            return [vscode.TextEdit.replace(document.validateRange(new vscode.Range(0, 0, Number.MAX_VALUE, Number.MAX_VALUE)), newText)]
         }
     });
 }
