@@ -28,6 +28,7 @@ const tokens: Token[] = [
     { text: 'ELSE', start: true },
     { text: 'THEN', start: true },
     { text: 'WHILE', start: true },
+    { text: 'LOCKED', start: true },
 
     // commands that may have ELSE or THEN statements (or blocks) following them
     { text: 'IF', start: true, inline: true },
@@ -81,17 +82,14 @@ const removeQuotedStrings = (text) => {
 };
 
 const getTrailingComment = (text) => {
-    const doubleRegex = /\\"|"(?:\\"|[^"])*"|(\+)/g;
-    const singleRegex = /\\'|'(?:\\'|[^'])*'|(\+)/g;
-
     // remove quoted delimiters
     text = removeQuotedStrings(text);
 
-    if (!text.includes('*')) {
+    if (!text.match(/;\s*\*/)) {
         return null;
     }
 
-    return /(\*.*)$/.exec(text)[1];
+    return /;\s*(\*.*)$/.exec(text)[1];
 };
 
 const removeTrailingComment = (text) => {
@@ -137,7 +135,7 @@ const isBlockStart = (text) => {
 
             if (token.inline) {
                 text = removeTrailingComment(removeQuotedStrings(text));
-                return /\s(THEN|ELSE|DO)\s*;?$/.exec(text) ? token : false;
+                return /\s(THEN|ELSE|DO|LOCKED)\s*;?$/.exec(text) ? token : false;
             }
 
             if (token.text === 'CASE') {
@@ -260,12 +258,15 @@ const formatFile = (document) => {
 
             nestLevel -= 1;
             debug('E', i + 1, nestLevel, text);
-            debug(token.text, inCase(), caseStack);
+            debug(token.text, inCase(), caseStack.length);
         }
 
         if (token.text === 'BEGIN CASE') {
             caseStack.push(false);
         } else if (token.text === 'CASE') {
+            if (caseStack.length < 1) {
+                throw new Error(`Unexpected case at line ${i}`);
+            }
             caseStack[caseStack.length - 1] = true;
         } else if (token.text === 'END CASE') {
             caseStack.pop();
