@@ -140,7 +140,13 @@ const isBlockStart = (text) => {
 
             if (token.text === 'CASE') {
                 text = removeTrailingComment(removeQuotedStrings(text));
-                return (!text.includes(';') || text.endsWith(';')) ? token : false;
+
+                return token;
+                // return (
+                //     !text.includes(';') || // has NO semicolons
+                //     text.endsWith(';') || // ends with a semicolon
+                //     (text.includes(';') && !text.endsWith(';')) // has semi but does not end with a semi
+                //     ) ? token : false;
             }
 
             return token;
@@ -168,7 +174,8 @@ const isBlockEnd = (text) => {
         if (re.exec(text)) {
             if (token.text === 'CASE') {
                 text = removeTrailingComment(removeQuotedStrings(text));
-                return (!text.includes(';')) ? token : false;
+                return token;
+                // return (!text.includes(';')) ? token : false;
             }
 
             return token;
