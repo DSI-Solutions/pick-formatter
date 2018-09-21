@@ -74,6 +74,9 @@ const escapeRegExp = (str) => {
 const margin = " ".repeat(5);
 const indent = " ".repeat(3);
 
+// track if in case block
+let caseLevel = 0;
+
 const removeQuotedStrings = (text) => {
     const doubleRegex = /\\"|"(?:\\"|[^"])*"|(\+)/g;
     const singleRegex = /\\'|'(?:\\'|[^'])*'|(\+)/g;
@@ -140,13 +143,8 @@ const isBlockStart = (text) => {
 
             if (token.text === 'CASE') {
                 text = removeTrailingComment(removeQuotedStrings(text));
-
+                caseLevel++;
                 return token;
-                // return (
-                //     !text.includes(';') || // has NO semicolons
-                //     text.endsWith(';') || // ends with a semicolon
-                //     (text.includes(';') && !text.endsWith(';')) // has semi but does not end with a semi
-                //     ) ? token : false;
             }
 
             return token;
@@ -172,10 +170,14 @@ const isBlockEnd = (text) => {
         const re = new RegExp(`^${escapeRegExp(token.text)}(\\s|$|\\()`);
 
         if (re.exec(text)) {
-            if (token.text === 'CASE') {
+            if (token.text === 'END CASE') {
+                caseLevel--;
+            } else if (token.text === 'CASE') {
                 text = removeTrailingComment(removeQuotedStrings(text));
-                return token;
-                // return (!text.includes(';')) ? token : false;
+                // if we are in a case block, treat as end block
+                const ret = (caseLevel) ? token : false;
+                caseLevel--;
+                return ret;
             }
 
             return token;
