@@ -29,6 +29,8 @@ const tokens: Token[] = [
     { text: 'THEN', start: true },
     { text: 'WHILE', start: true },
     { text: 'LOCKED', start: true },
+    { text: 'TRY', start: true },
+    { text: 'CATCH', start: true, end: true },
 
     // commands that may have ELSE or THEN statements (or blocks) following them
     { text: 'IF', start: true, inline: true },
