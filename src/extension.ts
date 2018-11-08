@@ -16,6 +16,7 @@ interface Token {
     start?: boolean;
     end?: boolean;
     inline?: boolean;
+    line?: string;
 }
 
 const tokens: Token[] = [
@@ -140,6 +141,7 @@ const isBlockStart = (text) => {
 
             if (token.inline) {
                 text = removeTrailingComment(removeQuotedStrings(text));
+                token.line = text;
                 return /\s(THEN|ELSE|DO|LOCKED)\s*;?$/.exec(text) ? token : false;
             }
 
@@ -293,11 +295,6 @@ const formatFile = (document) => {
             nestLevel = 0;
         }
 
-        if (nestLevel < 0) {
-            vscode.window.showInformationMessage(`Format: nest less than zero on line ${i + 1}`);
-            return;
-        }
-
         text = formatLine(text, nestLevel);
 
         if (text !== line.text) {
@@ -305,7 +302,17 @@ const formatFile = (document) => {
         }
 
         if (token.start) {
-            nestLevel += 1;
+            if (token.text === 'UNTIL' && token.line.endsWith('REPEAT') && token.end && token.start) {
+                // HACK: ending LOOP block AND until, don't increment level
+                debug('UNTIL INLINE LOOP END');
+            } else {
+                nestLevel += 1;
+            }
+        }
+
+        if (nestLevel < 0) {
+            vscode.window.showInformationMessage(`Format: nest less than zero on line ${i + 1}`);
+            return;
         }
     }
 
