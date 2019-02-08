@@ -2,7 +2,7 @@
   "name": "pick-formatter",
   "displayName": "Pick Formatter",
   "description": "Pick Basic formatter",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "publisher": "scragg0x",
   "engines": {
     "vscode": "^1.14.0"
