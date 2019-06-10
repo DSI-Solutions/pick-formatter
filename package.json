@@ -4,6 +4,7 @@
   "description": "Pick Basic formatter",
   "version": "0.7.2",
   "publisher": "scragg0x",
+  "repository": "https://github.com/DSI-Solutions/pick-formatter.git",
   "engines": {
     "vscode": "^1.14.0"
   },
