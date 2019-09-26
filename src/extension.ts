@@ -36,6 +36,8 @@ const tokens: Token[] = [
     // commands that may have ELSE or THEN statements (or blocks) following them
     { text: 'IF', start: true, inline: true },
     { text: 'GET', start: true, inline: true },
+    { text: 'GETLIST', start: true, inline: true },
+    { text: 'GETLISTV', start: true, inline: true },
     { text: 'INPUT', start: true, inline: true },
     { text: 'LOCATE', start: true, inline: true },
     { text: 'LOCK', start: true, inline: true },
@@ -48,6 +50,7 @@ const tokens: Token[] = [
     { text: 'PROCWRITE', start: true, inline: true },
     { text: 'READ', start: true, inline: true },
     { text: 'READNEXT', start: true, inline: true },
+    { text: 'READLIST', start: true, inline: true },
     { text: 'READSEQ', start: true, inline: true },
     { text: 'READT', start: true, inline: true },
     { text: 'READU', start: true, inline: true },
@@ -55,9 +58,11 @@ const tokens: Token[] = [
     { text: 'READVU', start: true, inline: true },
     { text: 'RELEASE', start: true, inline: true },
     { text: 'REWIND', start: true, inline: true },
+    { text: 'SAVELIST', start: true, inline: true },
     { text: 'SEEK', start: true, inline: true },
     { text: 'UNTIL', start: true, end: true, inline: true },
     { text: 'WEOF', start: true, inline: true },
+    { text: 'WRITELIST', start: true, inline: true },
     { text: 'WRITESEQ', start: true, inline: true },
     { text: 'WRITET', start: true, inline: true },
 

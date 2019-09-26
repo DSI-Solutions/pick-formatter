@@ -2,7 +2,7 @@
   "name": "pick-formatter",
   "displayName": "Pick Formatter",
   "description": "Pick Basic formatter",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "publisher": "scragg0x",
   "repository": "https://github.com/DSI-Solutions/pick-formatter.git",
   "engines": {
@@ -33,10 +33,10 @@
     "publish": "vsce publish"
   },
   "devDependencies": {
-    "typescript": "^3.5.1",
-    "vscode": "^1.1.34",
+    "typescript": "^3.6.3",
+    "vscode": "^1.1.36",
     "mocha": "^5.2.0",
-    "@types/node": "^10.14.8",
+    "@types/node": "^10",
     "@types/mocha": "^5.2.7"
   }
 }
