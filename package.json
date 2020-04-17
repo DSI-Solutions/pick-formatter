@@ -33,10 +33,10 @@
     "publish": "vsce publish"
   },
   "devDependencies": {
-    "typescript": "^3.6.4",
+    "typescript": "^3.8.3",
     "vscode": "^1.1.36",
-    "mocha": "^5.2.0",
-    "@types/node": "^10",
-    "@types/mocha": "^5.2.7"
+    "mocha": "^7.1.1",
+    "@types/node": "^13.11.1",
+    "@types/mocha": "^7.0.2"
   }
 }
