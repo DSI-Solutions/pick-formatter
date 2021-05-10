@@ -2,7 +2,7 @@
   "name": "pick-formatter",
   "displayName": "Pick Formatter",
   "description": "Pick Basic formatter",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "publisher": "scragg0x",
   "repository": "https://github.com/DSI-Solutions/pick-formatter.git",
   "engines": {
