@@ -244,6 +244,7 @@ const formatFile = (document) => {
     const result = [];
 
 
+    // This can cause a problem if empty lines exist at the beginning or end of a file?
     const lines = document.getText().trim().split('\n');
 
     for (let i = 0; i < document.lineCount; i++) {
@@ -298,6 +299,7 @@ const formatFile = (document) => {
         }
 
         // END is required at the end of a file
+        // TODO USE document.lineCount INSTEAD ?
         if (i === lines.length - 1 && token.text === 'END') {
             nestLevel = 0;
         }
